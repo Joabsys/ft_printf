@@ -48,7 +48,7 @@ The result is a static library `libftprintf.a` that can be used in place of `pri
 
 ### Requirements
 
-- `gcc` compiler
+- `cc` compiler
 - `make`
 - Unix-based OS (Linux or macOS)
 
