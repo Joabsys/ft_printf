@@ -78,7 +78,7 @@ This will generate the `libftprintf.a` static library file.
 Copy `libftprintf.a` and `ft_printf.h` to your project, then compile with:
 
 ```bash
-gcc your_file.c -L. -lftprintf -o your_program
+cc your_file.c -L. -lftprintf -o your_program
 ```
 
 ---
