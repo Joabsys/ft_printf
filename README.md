@@ -85,6 +85,97 @@ gcc your_file.c -L. -lftprintf -o your_program
 
 ---
 
+## Algorithm & Data Structure
+
+### Overview
+
+`ft_printf` works by iterating over the format string character by character. When it encounters a regular character, it outputs it directly. When it finds a `%`, it reads the next character to identify the format specifier and dispatches the call to the corresponding helper function.
+
+```
+for each character in format:
+    if character != '%' → write it directly
+    if character == '%' → read next char → dispatch to helper function
+```
+
+### Variadic Arguments — how `va_list` works
+
+In C, functions normally have a fixed number of parameters. `ft_printf`, however, accepts any number of arguments. This is made possible by **variadic functions**, using the macros defined in `<stdarg.h>`.
+
+When you call:
+
+```c
+ft_printf("%d %s %u", 42, "hello", 7u);
+```
+
+The compiler pushes all arguments onto the **stack** in sequence before the function is called:
+
+```
+[ "%d %s %u" ] ← first argument (format)
+[     42     ] ← second argument
+[  "hello"   ] ← third argument
+[     7u     ] ← fourth argument
+```
+
+The four macros from `<stdarg.h>` are used to walk through those positions manually:
+
+| Macro | Role |
+|---|---|
+| `va_list ap` | Declares a cursor that tracks the current position in the argument list |
+| `va_start(ap, format)` | Initializes the cursor, anchored right after the last named parameter |
+| `va_arg(ap, type)` | Reads the current argument as `type` **and** advances the cursor to the next one |
+| `va_end(ap)` | Cleans up the internal state of `ap` — mandatory, omitting it is undefined behavior |
+
+### Step-by-step execution flow
+
+```
+ft_printf("%d %s %u", 42, "hello", 7u)
+            │
+            ▼
+        va_start(ap, format)
+            │
+            │   ap → [42] ["hello"] [7u]
+            ▼
+        reads '%d' → calls ft_print_decimal(&ap)
+                        va_arg(*ap, long long) → returns 42, ap advances
+            │
+            │   ap → ["hello"] [7u]
+            ▼
+        reads '%s' → calls ft_print_str(&ap)
+                        va_arg(*ap, char *) → returns "hello", ap advances
+            │
+            │   ap → [7u]
+            ▼
+        reads '%u' → calls ft_print_unsigned(&ap)
+                        va_arg(*ap, unsigned int) → returns 7, ap advances
+            │
+            │   ap → [empty]
+            ▼
+        va_end(ap)
+```
+
+### Why `va_list` is passed by pointer to helper functions
+
+`va_list` behaves like an array in many implementations — passing it by value gives the helper function a **copy** of the cursor. The copy advances inside the helper, but the original in `ft_printf` stays in place, causing the next specifier to read the wrong argument.
+
+Passing by pointer ensures that every `va_arg` call inside any helper function advances the **original** cursor:
+
+```c
+// wrong — receives a copy, ft_printf cursor does not advance
+int ft_print_decimal(va_list ap);
+
+// correct — receives the address, ft_printf cursor advances together
+int ft_print_decimal(va_list *ap);
+
+// call site inside ft_printf
+ft_print_decimal(&ap);
+```
+
+### Return value
+
+Each helper function returns the number of characters it wrote to stdout. `ft_printf` accumulates that count across all characters and specifiers and returns the **total number of characters written**, matching the behavior of the standard `printf`.
+
+---
+
 ## Resources
 
 ### Documentation & References
